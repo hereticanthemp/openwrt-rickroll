@@ -33,7 +33,7 @@ write_settings() (
 )
 
 start_service() {
-	local enabled ipaddr portal_port dns_port
+	local enabled ipaddr portal_port dns_port dns_answer
 
 	config_load rickroll
 	config_get_bool enabled main enabled 0
@@ -53,6 +53,7 @@ start_service() {
 	config_get ipaddr main ipaddr 192.168.56.1
 	config_get portal_port main portal_port 8080
 	config_get dns_port main dns_port 5300
+	config_get dns_answer main dns_answer 198.18.0.1
 
 	# Without a complete setup and the portal settings, do not leave an
 	# open network behind.
@@ -77,7 +78,7 @@ start_service() {
 	procd_set_param command /usr/sbin/dnsmasq -k \
 		-C /usr/share/rickroll/dnsmasq.conf \
 		--port="$dns_port" --listen-address="$ipaddr" \
-		--address="/#/$ipaddr" \
+		--address="/#/$dns_answer" \
 		-x /var/run/rickroll-dns.pid -u dnsmasq -g dnsmasq
 	procd_set_param respawn
 	procd_set_param stderr 1

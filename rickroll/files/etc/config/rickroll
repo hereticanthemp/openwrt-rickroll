@@ -10,6 +10,9 @@ config rickroll 'main'
 	option netmask '255.255.255.0'
 	option portal_port '8080'
 	option dns_port '5300'
+	# Every DNS name resolves to this address. It must not be private:
+	# Android reports "no internet" instead of the portal for private answers.
+	option dns_answer '198.18.0.1'
 	option lang 'auto'
 	option title ''
 	option button ''

@@ -143,6 +143,28 @@ check_iface_overlap() {
 	done
 }
 
+# The dedicated DNS answers every name with dns_answer. Android ignores the
+# captive portal when the answer for its probe host is a private address and
+# reports "no internet" instead, so the address must look public. Guests
+# cannot reach it: port 80 is redirected to the portal, everything else is
+# rejected.
+check_dns_answer() {
+	if ! valid_ipv4 "$1"; then
+		log_err "dns_answer '$1' is not an IPv4 address"
+		return 1
+	fi
+	a=$(ip2int "$1")
+	for net in 0.0.0.0/8 10.0.0.0/8 127.0.0.0/8 169.254.0.0/16 \
+		172.16.0.0/12 192.168.0.0/16 224.0.0.0/3; do
+		p=${net#*/}
+		m=$(((0xFFFFFFFF << (32 - p)) & 0xFFFFFFFF))
+		if [ $((a & m)) -eq $(($(ip2int "${net%/*}") & m)) ]; then
+			log_err "dns_answer '$1' is in $net; use a public address such as 198.18.0.1"
+			return 1
+		fi
+	done
+}
+
 # The DHCP range is host 100 to 249, so the netmask must be /16 to /24.
 check_subnet() {
 	valid_ipv4 "$ipaddr" || { log_err "ipaddr '$ipaddr' is not an IPv4 address"; return 1; }
@@ -174,6 +196,7 @@ load_settings() {
 	netmask=$(uci -q get rickroll.main.netmask) || netmask=255.255.255.0
 	portal_port=$(uci -q get rickroll.main.portal_port) || portal_port=8080
 	dns_port=$(uci -q get rickroll.main.dns_port) || dns_port=5300
+	dns_answer=$(uci -q get rickroll.main.dns_answer) || dns_answer=198.18.0.1
 }
 
 validate_settings() {
@@ -201,6 +224,7 @@ validate_settings() {
 	check_port dns_port "$dns_port" || ok=1
 	[ "$portal_port" != "$dns_port" ] ||
 		{ log_err "portal_port and dns_port must differ"; ok=1; }
+	check_dns_answer "$dns_answer" || ok=1
 	return $ok
 }
 
