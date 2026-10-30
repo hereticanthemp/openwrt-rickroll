@@ -1,0 +1,13 @@
+# Build output
+/dist/
+/build/
+*.apk
+*.ipk
+
+# Media must never be committed (copyright)
+*.mp4
+*.mkv
+*.webm
+*.ts
+*.m3u8
+media/
