@@ -1,0 +1,303 @@
+#!/usr/bin/env bash
+# Convert a video to HLS for the rickroll package and copy it to the router.
+set -euo pipefail
+
+PROG=${0##*/}
+REMOTE_DIR=/etc/rickroll
+MAX_SEGMENTS=1000
+HLS_TIME=6
+AUDIO_BITRATE=96k
+
+usage() {
+	cat <<EOF
+Usage:
+  $PROG [options] <video-file> <ssh-target>      convert and upload
+  $PROG [options] --output <dir> <video-file>    convert to a local directory
+
+Converts <video-file> to HLS (MPEG-TS segments, H.264 video, AAC audio)
+and installs it as /etc/rickroll/media on the router.
+<ssh-target> is passed to ssh and scp, for example root@192.168.1.1.
+
+Options:
+  --output DIR      write the HLS files to DIR (must not exist or be empty)
+                    instead of uploading
+  --height N        output height in pixels (default 360). A taller source
+                    is encoded down to N. The video is never scaled up.
+  --start T         start time (ffmpeg time format, for example 1:05 or 65)
+                    The video is encoded so that the cut is exact.
+  --duration T      length (ffmpeg time format)
+  --max-size MB     maximum total size in MiB (default 20)
+  --force-encode    encode even if the source is already H.264 and AAC
+  -i KEYFILE        identity file for ssh and scp
+  -p PORT           ssh port
+  -h, --help        show this help
+
+Video is copied without encoding if it is H.264 with yuv420p pixels, is
+not taller than --height, and --start is not set. Audio is copied if it is AAC with 1 or 2 channels.
+If the source has no audio, a silent AAC track is added.
+The router needs the rickroll package and free space for the video plus 2 MiB.
+EOF
+}
+
+die() {
+	printf '%s: error: %s\n' "$PROG" "$*" >&2
+	exit 1
+}
+
+info() {
+	printf '%s: %s\n' "$PROG" "$*" >&2
+}
+
+need() {
+	local cmd
+	for cmd in "$@"; do
+		command -v "$cmd" >/dev/null 2>&1 || die "'$cmd' not found in PATH"
+	done
+}
+
+is_uint() {
+	[[ $1 =~ ^[0-9]+$ ]] && ((10#$1 > 0))
+}
+
+# --- arguments ---
+
+height=360
+start=
+duration=
+max_size=20
+force_encode=0
+output=
+ssh_opts=()
+scp_opts=()
+args=()
+
+while (($#)); do
+	case $1 in
+	-h | --help) usage; exit 0 ;;
+	--height) height=${2-}; shift ;;
+	--start) start=${2-}; shift ;;
+	--duration) duration=${2-}; shift ;;
+	--max-size) max_size=${2-}; shift ;;
+	--output) output=${2-}; shift ;;
+	--force-encode) force_encode=1 ;;
+	-i)
+		[[ -f ${2-} ]] || die "identity file not found: ${2-}"
+		ssh_opts+=(-i "$2"); scp_opts+=(-i "$2"); shift ;;
+	-p)
+		is_uint "${2-}" || die "invalid port: ${2-}"
+		ssh_opts+=(-p "$2"); scp_opts+=(-P "$2"); shift ;;
+	--) shift; args+=("$@"); break ;;
+	-*) die "unknown option: $1 (see --help)" ;;
+	*) args+=("$1") ;;
+	esac
+	shift || die "option needs a value"
+done
+
+is_uint "$height" || die "invalid --height: $height"
+is_uint "$max_size" || die "invalid --max-size: $max_size"
+
+if [[ -n $output ]]; then
+	((${#args[@]} == 1)) || die "--output takes exactly one <video-file> (see --help)"
+	target=
+else
+	((${#args[@]} == 2)) || die "need <video-file> and <ssh-target> (see --help)"
+	target=${args[1]}
+fi
+src=${args[0]}
+[[ -f $src ]] || die "file not found: $src"
+
+if [[ -n $output && -e $output ]]; then
+	[[ -d $output ]] || die "--output exists and is not a directory: $output"
+	[[ -z $(ls -A -- "$output") ]] || die "--output directory is not empty: $output"
+fi
+
+need ffmpeg ffprobe
+[[ -n $target ]] && need ssh scp
+
+# --- choose copy or encode per stream ---
+
+# Prints "key=value" lines for the first stream of type $1 (v or a).
+probe_stream() {
+	ffprobe -v error -select_streams "$1:0" \
+		-show_entries stream=codec_name,pix_fmt,height,channels \
+		-of default=noprint_wrappers=1 -- "$2"
+}
+
+v_codec='' v_pix='' v_height=0
+while IFS='=' read -r key value; do
+	case $key in
+	codec_name) v_codec=$value ;;
+	pix_fmt) v_pix=$value ;;
+	height) is_uint "$value" && v_height=$value ;;
+	esac
+done < <(probe_stream v "$src")
+[[ -n $v_codec ]] || die "no video stream in $src"
+
+a_codec='' a_channels=''
+while IFS='=' read -r key value; do
+	case $key in
+	codec_name) a_codec=$value ;;
+	channels) a_channels=$value ;;
+	esac
+done < <(probe_stream a "$src")
+
+if ((force_encode)); then
+	video_mode=encode
+	audio_mode=${a_codec:+encode}
+elif [[ $v_codec == h264 && $v_pix =~ ^yuvj?420p$ && -z $start ]] &&
+	((v_height > 0 && v_height <= height)); then
+	video_mode=copy
+	audio_mode=
+else
+	video_mode=encode
+	audio_mode=
+fi
+if [[ -z $a_codec ]]; then
+	audio_mode=silent
+elif [[ -z $audio_mode ]]; then
+	if [[ $a_codec == aac && $a_channels =~ ^[12]$ ]]; then
+		audio_mode=copy
+	else
+		audio_mode=encode
+	fi
+fi
+
+encoder=
+if [[ $video_mode == encode ]]; then
+	encoders=$(ffmpeg -hide_banner -encoders 2>/dev/null)
+	for e in libx264 libopenh264; do
+		if grep -Eq "^ *V[^ ]* +$e " <<<"$encoders"; then
+			encoder=$e
+			break
+		fi
+	done
+	[[ -n $encoder ]] || die "ffmpeg has no H.264 encoder (need libx264 or libopenh264).
+Install an ffmpeg build with libx264, or with libopenh264 (Fedora: ffmpeg-free + openh264)."
+fi
+
+# --- convert ---
+
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/rickroll-media.XXXXXX")
+trap 'rm -rf -- "$tmp"' EXIT
+
+cmd=(ffmpeg -hide_banner -nostdin -loglevel error -stats)
+[[ -n $start ]] && cmd+=(-ss "$start")
+cmd+=(-i "$src")
+if [[ $audio_mode == silent ]]; then
+	cmd+=(-f lavfi -i anullsrc=channel_layout=stereo:sample_rate=48000 -shortest)
+	cmd+=(-map 0:v:0 -map 1:a:0)
+else
+	cmd+=(-map 0:v:0 -map 0:a:0)
+fi
+[[ -n $duration ]] && cmd+=(-t "$duration")
+
+if [[ $video_mode == copy ]]; then
+	cmd+=(-c:v copy)
+else
+	# 600 kbit/s at 360 lines, scaled with --height.
+	# Keyframe every HLS_TIME seconds, so segments can be cut there.
+	cmd+=(-c:v "$encoder" -profile:v main -pix_fmt yuv420p
+		-vf "scale=-2:trunc(min(ih\\,$height)/2)*2"
+		-b:v "$((height * 5 / 3))k"
+		-force_key_frames "expr:gte(t,n_forced*$HLS_TIME)")
+fi
+if [[ $audio_mode == copy ]]; then
+	cmd+=(-c:a copy)
+else
+	cmd+=(-c:a aac -b:a "$AUDIO_BITRATE" -ac 2)
+fi
+cmd+=(-f hls -hls_time "$HLS_TIME" -hls_playlist_type vod
+	-hls_segment_filename "$tmp/seg%03d.ts" "$tmp/index.m3u8")
+
+info "converting: video $video_mode${encoder:+ ($encoder)}, audio $audio_mode"
+"${cmd[@]}" || die "ffmpeg failed"
+
+# --- verify ---
+
+shopt -s nullglob
+segments=("$tmp"/*.ts)
+shopt -u nullglob
+nseg=${#segments[@]}
+((nseg > 0)) || die "ffmpeg wrote no segments"
+((nseg <= MAX_SEGMENTS)) ||
+	die "$nseg segments, the router accepts at most $MAX_SEGMENTS; use --duration"
+for f in "${segments[@]}"; do
+	[[ ${f##*/} =~ ^seg[0-9]{3}\.ts$ ]] || die "unexpected segment name: ${f##*/}"
+done
+
+size=$(cat -- "$tmp/index.m3u8" "${segments[@]}" | wc -c)
+max_bytes=$((max_size * 1024 * 1024))
+if ((size > max_bytes)); then
+	hint="use --duration or a smaller --height"
+	[[ $video_mode == copy ]] && hint="use --force-encode or --duration"
+	die "output is $((size / 1024)) KiB, more than --max-size $max_size MiB; $hint"
+fi
+
+seg_video=$(probe_stream v "${segments[0]}" | grep -m 1 '^codec_name=' || true)
+seg_audio=$(probe_stream a "${segments[0]}" | grep -m 1 '^codec_name=' || true)
+[[ $seg_video == codec_name=h264 && $seg_audio == codec_name=aac ]] ||
+	die "first segment is not H.264 and AAC: video '$seg_video', audio '$seg_audio'"
+
+# --- install ---
+
+if [[ -n $target ]]; then
+	remote() {
+		ssh "${ssh_opts[@]}" -- "$target" "$1"
+	}
+	remote_cleanup() {
+		remote "rm -rf $REMOTE_DIR/media.new" || info "could not remove $REMOTE_DIR/media.new on the router"
+	}
+
+	info "checking $target"
+	rc=0
+	df_line=$(remote "[ -d $REMOTE_DIR ] || exit 3
+rm -rf $REMOTE_DIR/media.new && mkdir $REMOTE_DIR/media.new || exit 4
+df -Pk $REMOTE_DIR | tail -n 1") || rc=$?
+	case $rc in
+	0) ;;
+	3) die "$REMOTE_DIR not found on $target; install the rickroll package first" ;;
+	4) die "could not create $REMOTE_DIR/media.new on $target" ;;
+	*) die "ssh to $target failed (exit $rc)" ;;
+	esac
+
+	read -r _ _ _ avail_kb _ <<<"$df_line"
+	need_kb=$(((size + 1023) / 1024 + 2048))
+	if ! [[ $avail_kb =~ ^[0-9]+$ ]]; then
+		remote_cleanup
+		die "cannot read free space on $target: $df_line"
+	fi
+	if ((avail_kb < need_kb)); then
+		remote_cleanup
+		die "$target has $avail_kb KiB free in $REMOTE_DIR, need $need_kb KiB"
+	fi
+
+	info "uploading $nseg segments"
+	# -O: OpenWrt dropbear has no sftp-server.
+	if ! scp -O -q "${scp_opts[@]}" -- "$tmp/index.m3u8" "${segments[@]}" \
+		"$target:$REMOTE_DIR/media.new/"; then
+		remote_cleanup
+		die "upload failed"
+	fi
+
+	remote "cd $REMOTE_DIR || exit 1
+rm -rf media.old
+if [ -e media ]; then mv media media.old || exit 1; fi
+if ! mv media.new media; then
+	[ -e media.old ] && mv media.old media
+	exit 1
+fi
+rm -rf media.old" || {
+		remote_cleanup
+		die "could not replace $REMOTE_DIR/media on $target"
+	}
+	dest="$target:$REMOTE_DIR/media"
+else
+	mkdir -p -- "$output"
+	mv -- "$tmp/index.m3u8" "${segments[@]}" "$output/"
+	dest=$output
+fi
+
+printf 'mode:     video %s%s, audio %s\n' "$video_mode" "${encoder:+ ($encoder)}" "$audio_mode"
+printf 'segments: %d\n' "$nseg"
+printf 'size:     %d KiB\n' "$(((size + 1023) / 1024))"
+printf 'dest:     %s\n' "$dest"
