@@ -57,12 +57,24 @@ function mediaText(media) {
 	return _('%d segments, %1024.2mB').format(media.segments, media.bytes);
 }
 
+// Other open access points on the same radio, as a warning.
+function openIfacesText(list) {
+	if (!list?.length)
+		return badge(true, _('None'));
+
+	return E('span', {}, list.map(function(i) {
+		return E('div', {}, badge(false,
+			_('"%s" has no password and joins network "%s"').format(i.ssid, i.network)));
+	}));
+}
+
 function statusRows(st) {
 	const rows = [
 		[ _('Enabled'), badge(st.enabled, st.enabled ? _('Yes') : _('No')) ],
 		[ _('Portal web server'), badge(st.running?.portal, st.running?.portal ? _('Running') : _('Not running')) ],
 		[ _('Portal DNS server'), badge(st.running?.dns, st.running?.dns ? _('Running') : _('Not running')) ],
 		[ _('Wi-Fi interface'), badge(st.iface?.up, st.iface?.up ? _('Up (%s)').format(st.iface.ifname) : _('Down')) ],
+		[ _('Other open Wi-Fi on this radio'), openIfacesText(st.open_ifaces) ],
 		[ _('Connected devices'), String(st.clients ?? 0) ],
 		[ _('Video'), badge(st.media?.present, mediaText(st.media)) ],
 		[ _('Portal address'), st.portal_url

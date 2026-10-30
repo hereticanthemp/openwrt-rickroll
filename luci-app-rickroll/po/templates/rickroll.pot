@@ -1,133 +1,137 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8"
 
+#: htdocs/luci-static/resources/view/rickroll.js:67
+msgid "\"%s\" has no password and joins network \"%s\""
+msgstr ""
+
 #: htdocs/luci-static/resources/view/rickroll.js:57
 msgid "%d segments, %1024.2mB"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:228
+#: htdocs/luci-static/resources/view/rickroll.js:240
 msgid "%s (%s, channel %s)"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:304
+#: htdocs/luci-static/resources/view/rickroll.js:316
 msgid "Automatic (browser language)"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:328
+#: htdocs/luci-static/resources/view/rickroll.js:340
 msgid "Button text"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:66
+#: htdocs/luci-static/resources/view/rickroll.js:78
 msgid "Connected devices"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:215
+#: htdocs/luci-static/resources/view/rickroll.js:227
 msgid "Create the Wi-Fi network and start the portal."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:361
+#: htdocs/luci-static/resources/view/rickroll.js:373
 msgid "Creates an open Wi-Fi network that has no internet access. Every web page on this network shows a portal page. Its button plays the video that you uploaded."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:294
+#: htdocs/luci-static/resources/view/rickroll.js:306
 msgid "DNS port"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:182
+#: htdocs/luci-static/resources/view/rickroll.js:194
 msgid "Delete the video from the router? The portal page then has no video."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:348
-#: htdocs/luci-static/resources/view/rickroll.js:349
+#: htdocs/luci-static/resources/view/rickroll.js:360
+#: htdocs/luci-static/resources/view/rickroll.js:361
 msgid "Delete video"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:189
+#: htdocs/luci-static/resources/view/rickroll.js:201
 msgid "Deleted %d files."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:187
+#: htdocs/luci-static/resources/view/rickroll.js:199
 msgid "Deleted %d files. Could not delete %d files."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:249
+#: htdocs/luci-static/resources/view/rickroll.js:261
 msgid "Devices on this network cannot reach each other."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:65
+#: htdocs/luci-static/resources/view/rickroll.js:76
 msgid "Down"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:214
+#: htdocs/luci-static/resources/view/rickroll.js:226
 msgid "Enable"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:362
+#: htdocs/luci-static/resources/view/rickroll.js:374
 msgid "Enable it only where you have permission to run a Wi-Fi network."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:62
+#: htdocs/luci-static/resources/view/rickroll.js:73
 msgid "Enabled"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:232
+#: htdocs/luci-static/resources/view/rickroll.js:244
 msgid "Encryption"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:280
+#: htdocs/luci-static/resources/view/rickroll.js:292
 msgid "Expecting a netmask from 255.255.0.0 (/16) to 255.255.255.0 (/24)"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:149
+#: htdocs/luci-static/resources/view/rickroll.js:161
 msgid "Expecting a port number from 1024 to 65535"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:262
+#: htdocs/luci-static/resources/view/rickroll.js:274
 msgid "Expecting an IPv4 address without leading zeros"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:272
+#: htdocs/luci-static/resources/view/rickroll.js:284
 msgid "From /16 to /24. Devices get the host numbers 100 to 249 of this subnet."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:207
+#: htdocs/luci-static/resources/view/rickroll.js:219
 msgid "General Settings"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:256
+#: htdocs/luci-static/resources/view/rickroll.js:268
 msgid "IPv4 address of the router on this network. Use a subnet that no other network uses."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:248
+#: htdocs/luci-static/resources/view/rickroll.js:260
 msgid "Isolate clients"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:240
+#: htdocs/luci-static/resources/view/rickroll.js:252
 msgid "Key"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:325
-#: htdocs/luci-static/resources/view/rickroll.js:329
+#: htdocs/luci-static/resources/view/rickroll.js:337
+#: htdocs/luci-static/resources/view/rickroll.js:341
 msgid "Leave empty to use the default text of the page language."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:271
+#: htdocs/luci-static/resources/view/rickroll.js:283
 msgid "Netmask"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:208
+#: htdocs/luci-static/resources/view/rickroll.js:220
 msgid "Network"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:218
+#: htdocs/luci-static/resources/view/rickroll.js:230
 msgid "Network name (SSID)"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:62
+#: htdocs/luci-static/resources/view/rickroll.js:73
 msgid "No"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:233
+#: htdocs/luci-static/resources/view/rickroll.js:245
 msgid "No encryption (open network)"
 msgstr ""
 
@@ -136,39 +140,47 @@ msgid "No video. Upload one with tools/rickroll-media."
 msgstr ""
 
 #: htdocs/luci-static/resources/view/rickroll.js:63
-#: htdocs/luci-static/resources/view/rickroll.js:64
+msgid "None"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/rickroll.js:74
+#: htdocs/luci-static/resources/view/rickroll.js:75
 msgid "Not running"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:209
+#: htdocs/luci-static/resources/view/rickroll.js:77
+msgid "Other open Wi-Fi on this radio"
+msgstr ""
+
+#: htdocs/luci-static/resources/view/rickroll.js:221
 msgid "Page"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:303
+#: htdocs/luci-static/resources/view/rickroll.js:315
 msgid "Page language"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:324
+#: htdocs/luci-static/resources/view/rickroll.js:336
 msgid "Page title"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:64
+#: htdocs/luci-static/resources/view/rickroll.js:75
 msgid "Portal DNS server"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:68
+#: htdocs/luci-static/resources/view/rickroll.js:80
 msgid "Portal address"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:287
+#: htdocs/luci-static/resources/view/rickroll.js:299
 msgid "Portal port"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:63
+#: htdocs/luci-static/resources/view/rickroll.js:74
 msgid "Portal web server"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:222
+#: htdocs/luci-static/resources/view/rickroll.js:234
 msgid "Radio"
 msgstr ""
 
@@ -176,89 +188,89 @@ msgstr ""
 msgid "Rickroll"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:359
+#: htdocs/luci-static/resources/view/rickroll.js:371
 msgid "Rickroll captive portal"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:255
+#: htdocs/luci-static/resources/view/rickroll.js:267
 msgid "Router address"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:63
-#: htdocs/luci-static/resources/view/rickroll.js:64
+#: htdocs/luci-static/resources/view/rickroll.js:74
+#: htdocs/luci-static/resources/view/rickroll.js:75
 msgid "Running"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:365
+#: htdocs/luci-static/resources/view/rickroll.js:377
 msgid "Status"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:154
+#: htdocs/luci-static/resources/view/rickroll.js:166
 msgid "The portal port and the DNS port must be different"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:223
+#: htdocs/luci-static/resources/view/rickroll.js:235
 msgid "The radio that sends the network."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:133
+#: htdocs/luci-static/resources/view/rickroll.js:145
 msgid "The router address must not be the network or broadcast address"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:295
+#: htdocs/luci-static/resources/view/rickroll.js:307
 msgid "The router sends DNS requests (port 53) from this network to this port."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:288
+#: htdocs/luci-static/resources/view/rickroll.js:300
 msgid "The router sends HTTP requests (port 80) from this network to this port."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:342
+#: htdocs/luci-static/resources/view/rickroll.js:354
 msgid "This package contains no video. Convert your own video to HLS and copy it to /etc/rickroll/media on the router with the tools/rickroll-media script from the source repository, for example:"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:140
+#: htdocs/luci-static/resources/view/rickroll.js:152
 msgid "This subnet overlaps the subnet of the interface \"%s\""
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:65
+#: htdocs/luci-static/resources/view/rickroll.js:76
 msgid "Up (%s)"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:339
+#: htdocs/luci-static/resources/view/rickroll.js:351
 msgid "Upload"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:344
+#: htdocs/luci-static/resources/view/rickroll.js:356
 msgid "Use only a video that you have the right to show."
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:67
-#: htdocs/luci-static/resources/view/rickroll.js:210
-#: htdocs/luci-static/resources/view/rickroll.js:334
+#: htdocs/luci-static/resources/view/rickroll.js:79
+#: htdocs/luci-static/resources/view/rickroll.js:222
+#: htdocs/luci-static/resources/view/rickroll.js:346
 msgid "Video"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:234
+#: htdocs/luci-static/resources/view/rickroll.js:246
 msgid "WPA2-PSK"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:236
+#: htdocs/luci-static/resources/view/rickroll.js:248
 msgid "WPA2-PSK/WPA3-SAE mixed mode"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:235
+#: htdocs/luci-static/resources/view/rickroll.js:247
 msgid "WPA3-SAE"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:65
+#: htdocs/luci-static/resources/view/rickroll.js:76
 msgid "Wi-Fi interface"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:62
+#: htdocs/luci-static/resources/view/rickroll.js:73
 msgid "Yes"
 msgstr ""
 
-#: htdocs/luci-static/resources/view/rickroll.js:226
+#: htdocs/luci-static/resources/view/rickroll.js:238
 msgid "auto"
 msgstr ""

@@ -186,6 +186,24 @@ check_subnet() {
 	return $overlap
 }
 
+# Callback of config_foreach: warn about another enabled access point
+# without a password on the rickroll radio. A fresh OpenWrt has one
+# ("OpenWrt", bridged to lan) that appears as soon as the radio is enabled.
+# shellcheck disable=SC2154 # config_get sets the variables
+warn_open_iface() {
+	[ "$1" = rickroll ] && return 0
+	config_get dev "$1" device
+	config_get dis "$1" disabled 0
+	config_get mode "$1" mode ap
+	config_get enc "$1" encryption none
+	config_get w_ssid "$1" ssid
+	config_get w_net "$1" network
+	[ "$dev" = "$radio" ] && [ "$dis" != 1 ] && [ "$mode" = ap ] && [ "$enc" = none ] || return 0
+	logger -t rickroll -p daemon.warn \
+		"open Wi-Fi '$w_ssid' ($1) on $radio has no password and joins network '$w_net'"
+	echo "rickroll: warning: open Wi-Fi '$w_ssid' ($1) on $radio has no password and joins network '$w_net'" >&2
+}
+
 load_settings() {
 	ssid=$(uci -q get rickroll.main.ssid) || ssid='Free Public WiFi'
 	radio=$(uci -q get rickroll.main.radio) || radio=radio0
@@ -326,6 +344,8 @@ run() {
 		load_settings
 		validate_settings || exit 1
 		[ "$1" = check ] && exit 0
+		config_load wireless
+		config_foreach warn_open_iface wifi-iface
 	fi
 
 	# Changes left by an earlier failed run would make "before" equal "after".

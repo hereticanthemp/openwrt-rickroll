@@ -80,11 +80,35 @@ function client_count(ubus, ifname) {
 	return type(clients) == 'object' ? length(clients) : 0;
 }
 
+// Other enabled access points without a password on the rickroll radio. A
+// fresh OpenWrt has one ("OpenWrt", bridged to lan) that appears as soon as
+// the radio is enabled. Only name, SSID and network, so no key leaves wireless.
+function open_ifaces(uci, radio) {
+	let list = [];
+
+	uci?.foreach('wireless', 'wifi-iface', function(s) {
+		if (s['.name'] == 'rickroll' || s.device != radio || s.disabled == '1')
+			return;
+		if ((s.mode ?? 'ap') != 'ap' || (s.encryption ?? 'none') != 'none')
+			return;
+
+		let net = s.network;
+		push(list, {
+			name: s['.name'],
+			ssid: s.ssid ?? '',
+			network: type(net) == 'array' ? join(' ', net) : (net ?? '')
+		});
+	});
+
+	return list;
+}
+
 const methods = {
 	status: {
 		call: function() {
 			let ubus = connect();
-			let main = cursor()?.get_all('rickroll', 'main') ?? {};
+			let uci = cursor();
+			let main = uci?.get_all('rickroll', 'main') ?? {};
 			let enabled = main.enabled == '1';
 			let iface = wifi_iface(ubus);
 
@@ -94,6 +118,7 @@ const methods = {
 				clients: client_count(ubus, iface.ifname),
 				media: media_status(),
 				portal_url: enabled ? `http://${main.ipaddr ?? '192.168.56.1'}/` : null,
+				open_ifaces: open_ifaces(uci, main.radio ?? 'radio0'),
 				enabled
 			};
 
