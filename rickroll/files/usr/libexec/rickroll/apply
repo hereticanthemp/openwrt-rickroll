@@ -15,6 +15,7 @@
 # shellcheck source=/dev/null
 . /lib/functions.sh
 
+LOCK=/var/lock/rickroll-apply
 NETWORK_SECTIONS="rickroll_dev rickroll"
 WIRELESS_SECTIONS="rickroll"
 DHCP_SECTIONS="rickroll"
@@ -118,7 +119,8 @@ check_iface_overlap() {
 		*/*)
 			p=${a#*/}
 			a=${a%/*}
-			case "$p" in '' | *[!0-9]*) continue ;; esac
+			# A leading zero would make shell arithmetic read octal.
+			case "$p" in '' | *[!0-9]* | 0?*) continue ;; esac
 			[ "$p" -le 32 ] || continue
 			m=$(((0xFFFFFFFF << (32 - p)) & 0xFFFFFFFF))
 			;;
@@ -315,7 +317,12 @@ run() {
 		update_config network up && /etc/init.d/network reload
 		update_config firewall up && /etc/init.d/firewall reload
 		update_config dhcp up && /etc/init.d/dnsmasq reload
-		update_config wireless up && reload_wifi "$old_radio" "$radio"
+		# Never open the Wi-Fi when the firewall or DHCP setup failed.
+		if [ "$failed" -eq 0 ]; then
+			update_config wireless up && reload_wifi "$old_radio" "$radio"
+		else
+			log_err "setup failed, Wi-Fi not changed"
+		fi
 	else
 		update_config wireless down && reload_wifi "$old_radio"
 		update_config dhcp down && /etc/init.d/dnsmasq reload
@@ -333,4 +340,10 @@ up | down | check) ;;
 	;;
 esac
 
+# procd reload triggers, a manual restart and prerm can overlap.
+# Two runs at once would revert each other's staged changes.
+if [ "$1" != check ]; then
+	lock "$LOCK"
+	trap 'lock -u "$LOCK"' EXIT
+fi
 run "$1"

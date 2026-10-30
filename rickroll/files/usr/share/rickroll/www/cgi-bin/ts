@@ -16,7 +16,8 @@ esac
 
 file="$MEDIA${PATH_INFO}"
 # Serve regular files only; a symlink could point outside the media directory.
-[ -f "$file" ] && [ ! -L "$file" ] || not_found
+# The portal runs as nobody, so also check that the file is readable.
+[ -f "$file" ] && [ ! -L "$file" ] && [ -r "$file" ] || not_found
 
 printf 'Content-Type: video/mp2t\r\n'
 printf 'Content-Length: %s\r\n' "$(wc -c <"$file")"

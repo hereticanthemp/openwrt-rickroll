@@ -3,10 +3,14 @@
 # Android treats only 200-399 as a captive portal, so never answer 404.
 # The page is at port 80, which the firewall redirects to the portal port.
 
+# shellcheck source=/dev/null
+. /usr/share/libubox/jshn.sh
+
 SETTINGS=/var/run/rickroll/settings.json
 
 ipaddr=
-[ -r "$SETTINGS" ] && ipaddr=$(jsonfilter -i "$SETTINGS" -e '@.ipaddr')
+[ -r "$SETTINGS" ] && json_load_file "$SETTINGS" 2>/dev/null &&
+	json_get_var ipaddr ipaddr
 [ -n "$ipaddr" ] || ipaddr=192.168.56.1
 
 printf 'Status: 302 Found\r\n'

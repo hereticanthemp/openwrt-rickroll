@@ -50,13 +50,17 @@ start_service() {
 		return 1
 	fi
 
-	"$APPLY" up || return 1
-
 	config_get ipaddr main ipaddr 192.168.56.1
 	config_get portal_port main portal_port 8080
 	config_get dns_port main dns_port 5300
 
-	write_settings "$ipaddr" || return 1
+	# Without a complete setup and the portal settings, do not leave an
+	# open network behind.
+	if ! "$APPLY" up || ! write_settings "$ipaddr"; then
+		logger -t rickroll -p daemon.err "setup failed, rickroll network removed"
+		"$APPLY" down
+		return 1
+	fi
 
 	# Bind 0.0.0.0: at boot br-rickroll can come up after this process.
 	procd_open_instance portal

@@ -5,7 +5,7 @@
 PLAYLIST=/etc/rickroll/media/index.m3u8
 
 # A symlink could point outside the media directory.
-if [ ! -s "$PLAYLIST" ] || [ -L "$PLAYLIST" ]; then
+if [ ! -s "$PLAYLIST" ] || [ -L "$PLAYLIST" ] || [ ! -r "$PLAYLIST" ]; then
 	printf 'Status: 404 Not Found\r\nContent-Type: text/plain\r\n\r\nno media\n'
 	exit 0
 fi
