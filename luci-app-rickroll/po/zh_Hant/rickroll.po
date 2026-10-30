@@ -1,0 +1,253 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: zh_Hant\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: htdocs/luci-static/resources/view/rickroll.js:42
+msgid "%d segments, %1024.2mB"
+msgstr "%d 個片段，%1024.2mB"
+
+#: htdocs/luci-static/resources/view/rickroll.js:147
+msgid "%s (%s, channel %s)"
+msgstr "%s（%s，頻道 %s）"
+
+#: htdocs/luci-static/resources/view/rickroll.js:202
+msgid "Automatic (browser language)"
+msgstr "自動（依瀏覽器語言）"
+
+#: htdocs/luci-static/resources/view/rickroll.js:226
+msgid "Button text"
+msgstr "按鈕文字"
+
+#: htdocs/luci-static/resources/view/rickroll.js:51
+msgid "Connected devices"
+msgstr "已連線的裝置"
+
+#: htdocs/luci-static/resources/view/rickroll.js:134
+msgid "Create the Wi-Fi network and start the portal."
+msgstr "建立 Wi-Fi 網路並啟動入口網頁。"
+
+#: htdocs/luci-static/resources/view/rickroll.js:259
+msgid "Creates an open Wi-Fi network that has no internet access. Every web page on this network shows a portal page. Its button plays the video that you uploaded."
+msgstr "建立一個沒有網際網路連線的開放 Wi-Fi 網路。在這個網路上開啟任何網頁都會顯示入口網頁。網頁上的按鈕會播放你上傳的影片。"
+
+#: htdocs/luci-static/resources/view/rickroll.js:192
+msgid "DNS port"
+msgstr "DNS 連接埠"
+
+#: htdocs/luci-static/resources/view/rickroll.js:103
+msgid "Delete the video from the router? The portal page then has no video."
+msgstr "要從路由器刪除影片嗎？刪除後入口網頁沒有影片可播放。"
+
+#: htdocs/luci-static/resources/view/rickroll.js:246
+#: htdocs/luci-static/resources/view/rickroll.js:247
+msgid "Delete video"
+msgstr "刪除影片"
+
+#: htdocs/luci-static/resources/view/rickroll.js:110
+msgid "Deleted %d files."
+msgstr "已刪除 %d 個檔案。"
+
+#: htdocs/luci-static/resources/view/rickroll.js:108
+msgid "Deleted %d files. Could not delete %d files."
+msgstr "已刪除 %d 個檔案。有 %d 個檔案無法刪除。"
+
+#: htdocs/luci-static/resources/view/rickroll.js:168
+msgid "Devices on this network cannot reach each other."
+msgstr "這個網路上的裝置無法互相連線。"
+
+#: htdocs/luci-static/resources/view/rickroll.js:50
+msgid "Down"
+msgstr "未啟動"
+
+#: htdocs/luci-static/resources/view/rickroll.js:133
+msgid "Enable"
+msgstr "啟用"
+
+#: htdocs/luci-static/resources/view/rickroll.js:260
+msgid "Enable it only where you have permission to run a Wi-Fi network."
+msgstr "只在你有權架設 Wi-Fi 網路的環境啟用。"
+
+#: htdocs/luci-static/resources/view/rickroll.js:47
+msgid "Enabled"
+msgstr "已啟用"
+
+#: htdocs/luci-static/resources/view/rickroll.js:151
+msgid "Encryption"
+msgstr "加密"
+
+#: htdocs/luci-static/resources/view/rickroll.js:69
+msgid "Expecting a port number from 1 to 65535"
+msgstr "請輸入 1 到 65535 的連接埠號碼"
+
+#: htdocs/luci-static/resources/view/rickroll.js:126
+msgid "General Settings"
+msgstr "一般設定"
+
+#: htdocs/luci-static/resources/view/rickroll.js:175
+msgid "IPv4 address of the router on this network. Use a subnet that no other network uses."
+msgstr "路由器在這個網路上的 IPv4 位址。請使用其他網路沒有使用的子網路。"
+
+#: htdocs/luci-static/resources/view/rickroll.js:167
+msgid "Isolate clients"
+msgstr "隔離用戶端"
+
+#: htdocs/luci-static/resources/view/rickroll.js:159
+msgid "Key"
+msgstr "金鑰"
+
+#: htdocs/luci-static/resources/view/rickroll.js:223
+#: htdocs/luci-static/resources/view/rickroll.js:227
+msgid "Leave empty to use the default text of the page language."
+msgstr "留空時使用頁面語言的預設文字。"
+
+#: htdocs/luci-static/resources/view/rickroll.js:180
+msgid "Netmask"
+msgstr "子網路遮罩"
+
+#: htdocs/luci-static/resources/view/rickroll.js:127
+msgid "Network"
+msgstr "網路"
+
+#: htdocs/luci-static/resources/view/rickroll.js:137
+msgid "Network name (SSID)"
+msgstr "網路名稱（SSID）"
+
+#: htdocs/luci-static/resources/view/rickroll.js:47
+msgid "No"
+msgstr "否"
+
+#: htdocs/luci-static/resources/view/rickroll.js:152
+msgid "No encryption (open network)"
+msgstr "不加密（開放網路）"
+
+#: htdocs/luci-static/resources/view/rickroll.js:40
+msgid "No video. Upload one with tools/rickroll-media."
+msgstr "沒有影片。請用 tools/rickroll-media 上傳。"
+
+#: htdocs/luci-static/resources/view/rickroll.js:48
+#: htdocs/luci-static/resources/view/rickroll.js:49
+msgid "Not running"
+msgstr "未執行"
+
+#: htdocs/luci-static/resources/view/rickroll.js:128
+msgid "Page"
+msgstr "頁面"
+
+#: htdocs/luci-static/resources/view/rickroll.js:201
+msgid "Page language"
+msgstr "頁面語言"
+
+#: htdocs/luci-static/resources/view/rickroll.js:222
+msgid "Page title"
+msgstr "頁面標題"
+
+#: htdocs/luci-static/resources/view/rickroll.js:49
+msgid "Portal DNS server"
+msgstr "入口網頁 DNS 伺服器"
+
+#: htdocs/luci-static/resources/view/rickroll.js:53
+msgid "Portal address"
+msgstr "入口網頁網址"
+
+#: htdocs/luci-static/resources/view/rickroll.js:185
+msgid "Portal port"
+msgstr "入口網頁連接埠"
+
+#: htdocs/luci-static/resources/view/rickroll.js:48
+msgid "Portal web server"
+msgstr "入口網頁伺服器"
+
+#: htdocs/luci-static/resources/view/rickroll.js:72
+msgid "Ports 53 and 80 are used by the router; choose another port"
+msgstr "路由器已使用連接埠 53 與 80，請選擇其他連接埠"
+
+#: htdocs/luci-static/resources/view/rickroll.js:141
+msgid "Radio"
+msgstr "無線電"
+
+#: root/usr/share/luci/menu.d/luci-app-rickroll.json:admin/services/rickroll
+msgid "Rickroll"
+msgstr "Rickroll"
+
+#: htdocs/luci-static/resources/view/rickroll.js:257
+msgid "Rickroll captive portal"
+msgstr "Rickroll 強制入口網頁"
+
+#: htdocs/luci-static/resources/view/rickroll.js:174
+msgid "Router address"
+msgstr "路由器位址"
+
+#: htdocs/luci-static/resources/view/rickroll.js:48
+#: htdocs/luci-static/resources/view/rickroll.js:49
+msgid "Running"
+msgstr "執行中"
+
+#: htdocs/luci-static/resources/view/rickroll.js:263
+msgid "Status"
+msgstr "狀態"
+
+#: htdocs/luci-static/resources/view/rickroll.js:77
+msgid "The portal port and the DNS port must be different"
+msgstr "入口網頁連接埠與 DNS 連接埠必須不同"
+
+#: htdocs/luci-static/resources/view/rickroll.js:142
+msgid "The radio that sends the network."
+msgstr "發送這個網路的無線電。"
+
+#: htdocs/luci-static/resources/view/rickroll.js:193
+msgid "The router sends DNS requests (port 53) from this network to this port."
+msgstr "路由器把這個網路的 DNS 要求（連接埠 53）轉到這個連接埠。"
+
+#: htdocs/luci-static/resources/view/rickroll.js:186
+msgid "The router sends HTTP requests (port 80) from this network to this port."
+msgstr "路由器把這個網路的 HTTP 要求（連接埠 80）轉到這個連接埠。"
+
+#: htdocs/luci-static/resources/view/rickroll.js:240
+msgid "This package contains no video. Convert your own video to HLS and copy it to /etc/rickroll/media on the router with the tools/rickroll-media script from the source repository, for example:"
+msgstr "這個套件不含影片。請用原始碼 repository 中的 tools/rickroll-media 腳本，把你自己的影片轉成 HLS 並複製到路由器的 /etc/rickroll/media，例如："
+
+#: htdocs/luci-static/resources/view/rickroll.js:50
+msgid "Up (%s)"
+msgstr "已啟動（%s）"
+
+#: htdocs/luci-static/resources/view/rickroll.js:237
+msgid "Upload"
+msgstr "上傳"
+
+#: htdocs/luci-static/resources/view/rickroll.js:242
+msgid "Use only a video that you have the right to show."
+msgstr "只使用你有權播放的影片。"
+
+#: htdocs/luci-static/resources/view/rickroll.js:52
+#: htdocs/luci-static/resources/view/rickroll.js:129
+#: htdocs/luci-static/resources/view/rickroll.js:232
+msgid "Video"
+msgstr "影片"
+
+#: htdocs/luci-static/resources/view/rickroll.js:153
+msgid "WPA2-PSK"
+msgstr "WPA2-PSK"
+
+#: htdocs/luci-static/resources/view/rickroll.js:155
+msgid "WPA2-PSK/WPA3-SAE mixed mode"
+msgstr "WPA2-PSK/WPA3-SAE 混合模式"
+
+#: htdocs/luci-static/resources/view/rickroll.js:154
+msgid "WPA3-SAE"
+msgstr "WPA3-SAE"
+
+#: htdocs/luci-static/resources/view/rickroll.js:50
+msgid "Wi-Fi interface"
+msgstr "Wi-Fi 介面"
+
+#: htdocs/luci-static/resources/view/rickroll.js:47
+msgid "Yes"
+msgstr "是"
+
+#: htdocs/luci-static/resources/view/rickroll.js:145
+msgid "auto"
+msgstr "自動"

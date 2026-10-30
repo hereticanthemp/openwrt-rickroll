@@ -1,0 +1,14 @@
+{
+	"admin/services/rickroll": {
+		"title": "Rickroll",
+		"order": 90,
+		"action": {
+			"type": "view",
+			"path": "rickroll"
+		},
+		"depends": {
+			"acl": [ "luci-app-rickroll" ],
+			"uci": { "rickroll": true }
+		}
+	}
+}

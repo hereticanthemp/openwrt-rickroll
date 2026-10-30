@@ -1,0 +1,17 @@
+{
+	"luci-app-rickroll": {
+		"description": "Grant access to rickroll configuration",
+		"read": {
+			"ubus": {
+				"luci.rickroll": [ "status" ]
+			},
+			"uci": [ "rickroll", "wireless" ]
+		},
+		"write": {
+			"ubus": {
+				"luci.rickroll": [ "delete_media" ]
+			},
+			"uci": [ "rickroll" ]
+		}
+	}
+}
