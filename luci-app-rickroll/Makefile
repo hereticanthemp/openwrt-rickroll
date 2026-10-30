@@ -3,6 +3,7 @@ include $(TOPDIR)/rules.mk
 LUCI_TITLE:=LuCI support for rickroll captive portal
 LUCI_DEPENDS:=+luci-base +rickroll
 LUCI_PKGARCH:=all
+LUCI_URL:=https://github.com/hereticanthemp/openwrt-rickroll
 
 PKG_VERSION:=0.1.0
 PKG_RELEASE:=1

@@ -21,6 +21,7 @@ define Package/rickroll
   TITLE:=Open Wi-Fi with a captive portal that plays your video
   DEPENDS:=+uhttpd +dnsmasq
   PKGARCH:=all
+  URL:=https://github.com/hereticanthemp/openwrt-rickroll
 endef
 
 define Package/rickroll/description

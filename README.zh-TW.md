@@ -34,7 +34,7 @@
 所以建置也要在 x86_64 的 Linux 上做。請用一般帳號執行，不要用 root。
 
 ```sh
-git clone <這個 repo>
+git clone https://github.com/hereticanthemp/openwrt-rickroll.git
 cd openwrt-rickroll
 ./scripts/build.sh          # 下載 SDK，建置結果放在 dist/
 ```

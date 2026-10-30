@@ -35,7 +35,7 @@ x86_64 Linux host, because the OpenWrt SDK runs only there. Run it as a normal
 user, not as root.
 
 ```sh
-git clone <this repository>
+git clone https://github.com/hereticanthemp/openwrt-rickroll.git
 cd openwrt-rickroll
 ./scripts/build.sh          # downloads the SDK, then builds into dist/
 ```
