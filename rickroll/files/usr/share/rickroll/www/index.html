@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Free Wi-Fi</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0b1f3a; color: #fff;
+    font-family: -apple-system, "PingFang TC", "Noto Sans TC", "Noto Sans SC",
+      "Hiragino Sans", "Noto Sans JP", "Microsoft JhengHei", sans-serif; }
+  #login { min-height: 100%; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 32px 24px; text-align: center; }
+  .logo { width: 72px; height: 72px; border-radius: 18px; background: #1e88e5;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+  .logo svg { width: 44px; height: 44px; }
+  h1 { font-size: 1.5rem; margin: 0 0 8px; }
+  p { margin: 0 0 28px; color: #b7c6dc; font-size: 0.95rem; line-height: 1.5;
+    white-space: pre-line; }
+  #go { width: 100%; max-width: 320px; padding: 16px; font-size: 1.2rem; font-weight: 600;
+    border: 0; border-radius: 12px; background: #1e88e5; color: #fff; cursor: pointer; }
+  #go:active { background: #1565c0; }
+  .fine { margin-top: 20px; font-size: 0.75rem; color: #6f84a3; }
+  #stage { display: none; position: fixed; inset: 0; background: #000; }
+  #stage video { width: 100%; height: 100%; object-fit: contain; }
+  #msg { display: none; position: fixed; left: 0; right: 0; bottom: 24px; text-align: center;
+    color: #fff; font-size: 1rem; pointer-events: none; }
+  #end { display: none; position: fixed; inset: 0; background: #000; padding: 24px;
+    align-items: center; justify-content: center; text-align: center;
+    font-size: 1.2rem; line-height: 1.5; }
+  #end.rolled { font-size: 2.2rem; font-weight: 800; }
+  #end.rolled span { display: inline-block; white-space: pre;
+    animation: hop 1s ease-in-out infinite, hue 3s linear infinite; }
+  @keyframes hop {
+    0%, 100% { transform: translateY(0) rotate(0); }
+    50% { transform: translateY(-0.4em) rotate(-8deg); }
+  }
+  @keyframes hue {
+    0% { color: #ff5252; } 25% { color: #ffd740; } 50% { color: #69f0ae; }
+    75% { color: #40c4ff; } 100% { color: #ff5252; }
+  }
+</style>
+</head>
+<body>
+<div id="login">
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+      <path d="M2 8.5a15 15 0 0 1 20 0"/><path d="M5 12a10 10 0 0 1 14 0"/>
+      <path d="M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1" fill="#fff"/>
+    </svg>
+  </div>
+  <h1 id="title">Free Wi-Fi</h1>
+  <p id="subtitle"></p>
+  <button id="go" type="button">Connect</button>
+  <div class="fine" id="terms"></div>
+</div>
+<div id="stage">
+  <video id="v" preload="auto" playsinline loop></video>
+</div>
+<div id="msg"></div>
+<div id="end"></div>
+<script>
+  // Strings and language choice. This block has no DOM access.
+  var STRINGS = {
+    'en': {
+      title: 'Free Wi-Fi',
+      subtitle: 'Welcome to free wireless internet.\nTap the button below to connect.',
+      button: 'Connect',
+      terms: 'By tapping “{button}” you agree to the terms of use.',
+      tap_for_sound: 'Tap the screen to turn on the sound',
+      fallback: 'This browser cannot play the video.',
+      rickrolled: 'You’ve been rickrolled!'
+    },
+    'zh-Hant': {
+      title: '免費 Wi-Fi',
+      subtitle: '歡迎使用免費無線網路。\n點選下方按鈕即可開始上網。',
+      button: '連線',
+      terms: '點選「{button}」即表示您同意使用條款。',
+      tap_for_sound: '點一下畫面開啟聲音',
+      fallback: '這個瀏覽器無法播放影片。',
+      rickrolled: '你被 Rickroll 了！'
+    },
+    'zh-Hans': {
+      title: '免费 Wi-Fi',
+      subtitle: '欢迎使用免费无线网络。\n点击下方按钮即可开始上网。',
+      button: '连接',
+      terms: '点击“{button}”即表示您同意使用条款。',
+      tap_for_sound: '轻触屏幕开启声音',
+      fallback: '此浏览器无法播放视频。',
+      rickrolled: '你被 Rickroll 了！'
+    },
+    'ja': {
+      title: '無料 Wi-Fi',
+      subtitle: '無料の無線ネットワークへようこそ。\n下のボタンを押すと接続できます。',
+      button: '接続',
+      terms: '「{button}」を押すと、利用規約に同意したものとみなされます。',
+      tap_for_sound: '画面をタップすると音声が出ます',
+      fallback: 'このブラウザでは動画を再生できません。',
+      rickrolled: 'Rickroll されました！'
+    }
+  };
+
+  // Return the STRINGS key for the first supported tag in tags, else 'en'.
+  function pickLang(tags) {
+    for (var i = 0; i < tags.length; i++) {
+      var t = String(tags[i] || '').toLowerCase().replace(/_/g, '-');
+      if (t === 'zh' || t.indexOf('zh-') === 0) {
+        if (/^zh-hans(-|$)/.test(t)) return 'zh-Hans';
+        if (/^zh-(hant|tw|hk|mo)(-|$)/.test(t)) return 'zh-Hant';
+        if (/^zh-[a-z]{4}-(tw|hk|mo)(-|$)/.test(t)) return 'zh-Hant';
+        return 'zh-Hans';
+      }
+      if (t === 'ja' || t.indexOf('ja-') === 0) return 'ja';
+      if (t === 'en' || t.indexOf('en-') === 0) return 'en';
+    }
+    return 'en';
+  }
+</script>
+<script src="/hls.min.js"></script>
+<script>
+  var PLAYLIST = '/cgi-bin/playlist.m3u8';
+  var v = document.getElementById('v');
+  var stage = document.getElementById('stage');
+  var msg = document.getElementById('msg');
+  var end = document.getElementById('end');
+  var go = document.getElementById('go');
+  var S = STRINGS.en;
+  // 'video', 'fallback' or 'text'. Without media the button shows text.
+  var mode = 'text';
+
+  function browserTags() {
+    if (navigator.languages && navigator.languages.length) return navigator.languages;
+    return [navigator.language || navigator.userLanguage || 'en'];
+  }
+
+  function applyConfig(cfg) {
+    var lang = STRINGS.hasOwnProperty(cfg.lang) ? cfg.lang : pickLang(browserTags());
+    S = STRINGS[lang];
+    var title = cfg.title || S.title;
+    var button = cfg.button || S.button;
+    document.documentElement.lang = lang;
+    document.title = title;
+    document.getElementById('title').textContent = title;
+    document.getElementById('subtitle').textContent = S.subtitle;
+    go.textContent = button;
+    document.getElementById('terms').textContent = S.terms.replace('{button}', button);
+  }
+
+  function showEnd(text, rolled) {
+    stage.style.display = 'none';
+    msg.style.display = 'none';
+    end.textContent = '';
+    end.className = rolled ? 'rolled' : '';
+    if (rolled) {
+      var chars = Array.from ? Array.from(text) : text.split('');
+      for (var i = 0; i < chars.length; i++) {
+        var s = document.createElement('span');
+        s.textContent = chars[i];
+        s.style.animationDelay = (i * 0.06) + 's, 0s';
+        end.appendChild(s);
+      }
+    } else {
+      end.textContent = text;
+    }
+    end.style.display = 'flex';
+  }
+
+  function fallback() {
+    mode = 'fallback';
+    if (stage.style.display === 'block') showEnd(S.fallback, false);
+  }
+
+  function setupMedia() {
+    if (v.canPlayType('application/vnd.apple.mpegurl')) {
+      mode = 'video';
+      v.addEventListener('error', fallback);
+      v.src = PLAYLIST;
+    } else if (window.Hls && Hls.isSupported()) {
+      mode = 'video';
+      var hls = new Hls();
+      hls.on(Hls.Events.ERROR, function (ev, data) {
+        if (data.fatal) fallback();
+      });
+      hls.loadSource(PLAYLIST);
+      hls.attachMedia(v);
+    } else {
+      mode = 'fallback';
+    }
+  }
+
+  function play() {
+    v.muted = false;
+    var p = v.play();
+    if (p && p.catch) {
+      p.then(function () { msg.style.display = 'none'; })
+       .catch(function () {
+         // Sound blocked: play muted and ask for one more tap to unmute.
+         v.muted = true;
+         var p2 = v.play();
+         if (p2 && p2.catch) p2.catch(function () {});
+         msg.textContent = S.tap_for_sound;
+         msg.style.display = 'block';
+       });
+    }
+  }
+
+  // iOS ignores loop for HLS VOD playlists.
+  v.addEventListener('ended', function () {
+    v.currentTime = 0;
+    var p3 = v.play();
+    if (p3 && p3.catch) p3.catch(function () {});
+  });
+
+  go.addEventListener('click', function () {
+    document.getElementById('login').style.display = 'none';
+    if (mode === 'video') {
+      stage.style.display = 'block';
+      play();
+    } else if (mode === 'fallback') {
+      showEnd(S.fallback, false);
+    } else {
+      showEnd(S.rickrolled, true);
+    }
+  });
+  stage.addEventListener('click', play);
+
+  applyConfig({});
+  if (window.fetch) {
+    fetch('/cgi-bin/config', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (cfg) {
+        applyConfig(cfg);
+        if (cfg.has_media) setupMedia();
+      }, function () {
+        // No config: keep English and the default texts, without media.
+      });
+  }
+</script>
+</body>
+</html>

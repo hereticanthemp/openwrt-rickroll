@@ -1,0 +1,24 @@
+#!/bin/sh
+# HLS segment, requested as /cgi-bin/ts/segNNN.ts.
+# uhttpd has no MIME type for .ts, so a CGI sends it.
+
+MEDIA=/etc/rickroll/media
+
+not_found() {
+	printf 'Status: 404 Not Found\r\nContent-Type: text/plain\r\n\r\nnot found\n'
+	exit 0
+}
+
+case "$PATH_INFO" in
+/seg[0-9][0-9][0-9].ts) ;;
+*) not_found ;;
+esac
+
+file="$MEDIA${PATH_INFO}"
+[ -f "$file" ] || not_found
+
+printf 'Content-Type: video/mp2t\r\n'
+printf 'Content-Length: %s\r\n' "$(wc -c <"$file")"
+printf 'Cache-Control: max-age=3600\r\n'
+printf '\r\n'
+exec cat "$file"

@@ -1,0 +1,20 @@
+#!/bin/sh
+# Page settings as JSON: lang, title, button, has_media.
+
+# shellcheck source=/dev/null
+. /usr/share/libubox/jshn.sh
+
+json_init
+json_add_string lang "$(uci -q get rickroll.main.lang || echo auto)"
+json_add_string title "$(uci -q get rickroll.main.title)"
+json_add_string button "$(uci -q get rickroll.main.button)"
+if [ -s /etc/rickroll/media/index.m3u8 ]; then
+	json_add_boolean has_media 1
+else
+	json_add_boolean has_media 0
+fi
+
+printf 'Content-Type: application/json\r\n'
+printf 'Cache-Control: no-store\r\n'
+printf '\r\n'
+json_dump

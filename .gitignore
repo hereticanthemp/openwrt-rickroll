@@ -11,3 +11,6 @@
 *.ts
 *.m3u8
 media/
+
+# The playlist CGI is code, not media
+!rickroll/files/usr/share/rickroll/www/cgi-bin/playlist.m3u8

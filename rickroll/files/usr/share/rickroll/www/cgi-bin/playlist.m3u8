@@ -1,0 +1,16 @@
+#!/bin/sh
+# HLS playlist. uhttpd has no MIME type for .m3u8, so a CGI sends it.
+# Segment URIs are rewritten to /cgi-bin/ts/segNNN.ts.
+
+PLAYLIST=/etc/rickroll/media/index.m3u8
+
+if [ ! -s "$PLAYLIST" ]; then
+	printf 'Status: 404 Not Found\r\nContent-Type: text/plain\r\n\r\nno media\n'
+	exit 0
+fi
+
+printf 'Content-Type: application/vnd.apple.mpegurl\r\n'
+printf 'Cache-Control: no-cache\r\n'
+printf '\r\n'
+sed -e 's/\r$//' \
+	-e 's|^[^#]*\(seg[0-9][0-9][0-9]\.ts\)$|/cgi-bin/ts/\1|' "$PLAYLIST"

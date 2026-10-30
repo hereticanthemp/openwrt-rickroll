@@ -1,0 +1,208 @@
+#!/bin/sh
+# Create ("up") or remove ("down") the UCI sections that rickroll manages.
+#
+# Only the sections named below are touched. A config is committed and its
+# service reloaded only when one of its managed sections really changed.
+# Staging uses the default UCI save directory, like other OpenWrt scripts:
+# a commit here also commits uncommitted "uci" CLI changes of the same config.
+# A private save directory (-t) does not isolate them: uci still reads
+# /tmp/.uci, so the commit would write them and also leave them pending.
+# LuCI keeps its pending changes in rpcd session directories instead.
+
+NETWORK_SECTIONS="rickroll_dev rickroll"
+WIRELESS_SECTIONS="rickroll"
+DHCP_SECTIONS="rickroll"
+FIREWALL_SECTIONS="rickroll rickroll_dhcp rickroll_dns rickroll_http rickroll_dnat_dns rickroll_dnat_http"
+
+log_err() {
+	logger -t rickroll -p daemon.err "$*"
+	echo "rickroll: $*" >&2
+}
+
+u() {
+	uci -q "$@"
+}
+
+sections_of() {
+	case "$1" in
+	network) echo "$NETWORK_SECTIONS" ;;
+	wireless) echo "$WIRELESS_SECTIONS" ;;
+	dhcp) echo "$DHCP_SECTIONS" ;;
+	firewall) echo "$FIREWALL_SECTIONS" ;;
+	esac
+}
+
+snapshot() {
+	for s in $(sections_of "$1"); do
+		u show "$1.$s"
+	done
+}
+
+delete_sections() {
+	for s in $(sections_of "$1"); do
+		u delete "$1.$s"
+	done
+}
+
+valid_ipv4() {
+	case "$1" in
+	*[!0-9.]* | .* | *. | *..*) return 1 ;;
+	esac
+	# shellcheck disable=SC2046 # split the address into octets on purpose
+	set -- $(echo "$1" | tr . ' ')
+	[ $# -eq 4 ] || return 1
+	for o in "$@"; do
+		[ "${#o}" -le 3 ] && [ "$o" -le 255 ] || return 1
+	done
+}
+
+valid_port() {
+	case "$1" in
+	'' | *[!0-9]* | 0*) return 1 ;;
+	esac
+	[ "${#1}" -le 5 ] && [ "$1" -le 65535 ]
+}
+
+load_settings() {
+	ssid=$(uci -q get rickroll.main.ssid) || ssid='Free Public WiFi'
+	radio=$(uci -q get rickroll.main.radio) || radio=radio0
+	encryption=$(uci -q get rickroll.main.encryption) || encryption=none
+	key=$(uci -q get rickroll.main.key)
+	isolate=$(uci -q get rickroll.main.isolate) || isolate=1
+	ipaddr=$(uci -q get rickroll.main.ipaddr) || ipaddr=192.168.56.1
+	netmask=$(uci -q get rickroll.main.netmask) || netmask=255.255.255.0
+	portal_port=$(uci -q get rickroll.main.portal_port) || portal_port=8080
+	dns_port=$(uci -q get rickroll.main.dns_port) || dns_port=5300
+}
+
+validate_settings() {
+	ok=0
+	[ -n "$ssid" ] || { log_err "ssid is empty"; ok=1; }
+	[ "$(u get "wireless.$radio")" = wifi-device ] ||
+		{ log_err "radio '$radio' is not a wifi-device"; ok=1; }
+	case "$encryption" in
+	none) ;;
+	psk2 | sae | sae-mixed)
+		[ -n "$key" ] || { log_err "encryption '$encryption' needs a key"; ok=1; }
+		;;
+	*) log_err "encryption '$encryption' is not none, psk2, sae or sae-mixed"; ok=1 ;;
+	esac
+	case "$isolate" in
+	0 | 1) ;;
+	*) log_err "isolate '$isolate' is not 0 or 1"; ok=1 ;;
+	esac
+	valid_ipv4 "$ipaddr" || { log_err "ipaddr '$ipaddr' is not an IPv4 address"; ok=1; }
+	valid_ipv4 "$netmask" || { log_err "netmask '$netmask' is not an IPv4 netmask"; ok=1; }
+	valid_port "$portal_port" || { log_err "portal_port '$portal_port' is not 1-65535"; ok=1; }
+	valid_port "$dns_port" || { log_err "dns_port '$dns_port' is not 1-65535"; ok=1; }
+	return $ok
+}
+
+build_network() {
+	u set network.rickroll_dev=device
+	u set network.rickroll_dev.name=br-rickroll
+	u set network.rickroll_dev.type=bridge
+	u set network.rickroll_dev.bridge_empty=1
+	u set network.rickroll=interface
+	u set network.rickroll.device=br-rickroll
+	u set network.rickroll.proto=static
+	u set network.rickroll.ipaddr="$ipaddr"
+	u set network.rickroll.netmask="$netmask"
+}
+
+build_wireless() {
+	u set wireless.rickroll=wifi-iface
+	u set wireless.rickroll.device="$radio"
+	u set wireless.rickroll.mode=ap
+	u set wireless.rickroll.ssid="$ssid"
+	u set wireless.rickroll.encryption="$encryption"
+	[ "$encryption" = none ] || u set wireless.rickroll.key="$key"
+	u set wireless.rickroll.isolate="$isolate"
+	u set wireless.rickroll.network=rickroll
+}
+
+build_dhcp() {
+	u set dhcp.rickroll=dhcp
+	u set dhcp.rickroll.interface=rickroll
+	u set dhcp.rickroll.start=100
+	u set dhcp.rickroll.limit=150
+	u set dhcp.rickroll.leasetime=1h
+}
+
+fw_rule() {
+	u set "firewall.$1=rule"
+	u set "firewall.$1.name=$2"
+	u set "firewall.$1.src=rickroll"
+	u set "firewall.$1.proto=$3"
+	u set "firewall.$1.dest_port=$4"
+	u set "firewall.$1.target=ACCEPT"
+}
+
+fw_dnat() {
+	u set "firewall.$1=redirect"
+	u set "firewall.$1.name=$2"
+	u set "firewall.$1.src=rickroll"
+	u set "firewall.$1.dest=rickroll"
+	u set "firewall.$1.proto=$3"
+	u set "firewall.$1.src_dport=$4"
+	u set "firewall.$1.dest_ip=$ipaddr"
+	u set "firewall.$1.dest_port=$5"
+	u set "firewall.$1.target=DNAT"
+	u set "firewall.$1.reflection=0"
+}
+
+build_firewall() {
+	u set firewall.rickroll=zone
+	u set firewall.rickroll.name=rickroll
+	u add_list firewall.rickroll.network=rickroll
+	u set firewall.rickroll.input=REJECT
+	u set firewall.rickroll.output=ACCEPT
+	u set firewall.rickroll.forward=REJECT
+	fw_rule rickroll_dhcp rickroll-dhcp udp 67
+	fw_rule rickroll_dns rickroll-dns 'tcp udp' "$dns_port"
+	fw_rule rickroll_http rickroll-http tcp "$portal_port"
+	fw_dnat rickroll_dnat_dns rickroll-dnat-dns 'tcp udp' 53 "$dns_port"
+	fw_dnat rickroll_dnat_http rickroll-dnat-http tcp 80 "$portal_port"
+}
+
+# Stage the new state of config $1 and commit it if it differs.
+# Returns 0 when the config changed.
+update_config() {
+	before=$(snapshot "$1")
+	delete_sections "$1"
+	[ "$2" = up ] && "build_$1"
+	after=$(snapshot "$1")
+	[ "$before" = "$after" ] && return 1
+	u commit "$1"
+}
+
+# Reload each radio once; empty arguments are skipped.
+reload_wifi() {
+	for r in $(printf '%s\n' "$@" | sort -u); do
+		wifi reload "$r"
+	done
+}
+
+run() {
+	old_radio=$(u get wireless.rickroll.device)
+	if [ "$1" = up ]; then
+		load_settings
+		validate_settings || exit 1
+	fi
+
+	update_config network "$1" && /etc/init.d/network reload
+	update_config wireless "$1" && reload_wifi "$old_radio" "$radio"
+	update_config dhcp "$1" && /etc/init.d/dnsmasq reload
+	update_config firewall "$1" && /etc/init.d/firewall reload
+	return 0
+}
+
+case "$1" in
+up | down) ;;
+*)
+	echo "usage: $0 up|down" >&2
+	exit 2
+	;;
+esac
+
+run "$1"
