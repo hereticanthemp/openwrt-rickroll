@@ -11,6 +11,7 @@ PKG_HASH:=e4ab3d5d13f7cca9ef241d098f39686e19fd451831ba07dc9943482fd5ff75c7
 
 PKG_MAINTAINER:=Gin Pan <hereticanthemp@gmail.com>
 PKG_LICENSE:=MIT Apache-2.0
+PKG_LICENSE_FILES:=LICENSE
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -48,6 +49,7 @@ define Package/rickroll/install
 	$(INSTALL_CONF) ./files/etc/config/rickroll $(1)/etc/config/
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/etc/init.d/rickroll $(1)/etc/init.d/
+	$(INSTALL_DIR) $(1)/etc/rickroll
 	$(INSTALL_DIR) $(1)/lib/upgrade/keep.d
 	$(INSTALL_DATA) ./files/lib/upgrade/keep.d/rickroll $(1)/lib/upgrade/keep.d/
 	$(INSTALL_DIR) $(1)/usr/libexec/rickroll
@@ -63,6 +65,7 @@ define Package/rickroll/install
 	$(INSTALL_BIN) ./files/usr/share/rickroll/www/cgi-bin/portal $(1)/usr/share/rickroll/www/cgi-bin/
 	$(INSTALL_BIN) ./files/usr/share/rickroll/www/cgi-bin/ts $(1)/usr/share/rickroll/www/cgi-bin/
 	$(INSTALL_DIR) $(1)/usr/share/licenses/rickroll
+	$(INSTALL_DATA) $(CURDIR)/../LICENSE $(1)/usr/share/licenses/rickroll/
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/LICENSE $(1)/usr/share/licenses/rickroll/hls.js.LICENSE
 endef
 

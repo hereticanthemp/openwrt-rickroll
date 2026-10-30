@@ -1,4 +1,5 @@
-// rpcd plugin "luci.rickroll": status of the rickroll service and its media.
+// rpcd plugin "luci.rickroll": status of the rickroll service and its media,
+// and the parts of other configs that the settings page needs.
 // SPDX-License-Identifier: MIT
 
 'use strict';
@@ -92,15 +93,50 @@ const methods = {
 				iface,
 				clients: client_count(ubus, iface.ifname),
 				media: media_status(),
-				portal_url: enabled
-					? `http://${main.ipaddr ?? '192.168.56.1'}:${main.portal_port ?? '8080'}/`
-					: null,
+				portal_url: enabled ? `http://${main.ipaddr ?? '192.168.56.1'}/` : null,
 				enabled
 			};
 
 			ubus?.disconnect();
 
 			return result;
+		}
+	},
+
+	// Radios for the radio choice. Only these options, so no key leaves wireless.
+	radios: {
+		call: function() {
+			let radios = [];
+
+			cursor()?.foreach('wireless', 'wifi-device', function(s) {
+				push(radios, {
+					name: s['.name'],
+					band: s.band ?? null,
+					channel: s.channel ?? null,
+					disabled: s.disabled == '1'
+				});
+			});
+
+			return { radios };
+		}
+	},
+
+	// IPv4 addresses of the static interfaces, to find overlapping subnets.
+	// "ipaddr" is "a.b.c.d" or "a.b.c.d/prefix"; "netmask" can be null.
+	subnets: {
+		call: function() {
+			let subnets = [];
+
+			cursor()?.foreach('network', 'interface', function(s) {
+				if (s.proto != 'static')
+					return;
+
+				for (let addr in (type(s.ipaddr) == 'array' ? s.ipaddr : [ s.ipaddr ]))
+					if (addr != null)
+						push(subnets, { interface: s['.name'], ipaddr: addr, netmask: s.netmask ?? null });
+			});
+
+			return { subnets };
 		}
 	},
 

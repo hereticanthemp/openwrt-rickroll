@@ -3,9 +3,9 @@
 		"description": "Grant access to rickroll configuration",
 		"read": {
 			"ubus": {
-				"luci.rickroll": [ "status" ]
+				"luci.rickroll": [ "status", "radios", "subnets" ]
 			},
-			"uci": [ "rickroll", "wireless" ]
+			"uci": [ "rickroll" ]
 		},
 		"write": {
 			"ubus": {

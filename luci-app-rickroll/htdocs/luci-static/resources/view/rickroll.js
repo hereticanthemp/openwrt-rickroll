@@ -12,6 +12,18 @@ const callStatus = rpc.declare({
 	expect: { '': {} }
 });
 
+const callRadios = rpc.declare({
+	object: 'luci.rickroll',
+	method: 'radios',
+	expect: { radios: [] }
+});
+
+const callSubnets = rpc.declare({
+	object: 'luci.rickroll',
+	method: 'subnets',
+	expect: { subnets: [] }
+});
+
 const callDeleteMedia = rpc.declare({
 	object: 'luci.rickroll',
 	method: 'delete_media',
@@ -29,7 +41,10 @@ const PAGE_DEFAULTS = {
 
 const BANDS = { '2g': '2.4 GHz', '5g': '5 GHz', '6g': '6 GHz', '60g': '60 GHz' };
 
-const RESERVED_PORTS = [ 53, 80 ];
+// The DHCP range is host 100 to 249 (rickroll/files/usr/libexec/rickroll/apply).
+const NETMASKS = [ 16, 17, 18, 19, 20, 21, 22, 23, 24 ].map(function(prefix) {
+	return [ prefixToInt(prefix), prefix ];
+});
 
 function badge(ok, text) {
 	return E('span', { 'class': ok ? 'label success' : 'label warning' }, text);
@@ -63,13 +78,75 @@ function statusRows(st) {
 	});
 }
 
+// An IPv4 address as an unsigned 32-bit number, or null. Like the apply
+// script and netifd, refuse octets with leading zeros.
+function ip4ToInt(value) {
+	const m = /^(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})$/.exec(value ?? '');
+
+	if (!m || m.slice(1).some(function(o) { return +o > 255; }))
+		return null;
+
+	return ((+m[1] << 24) | (+m[2] << 16) | (+m[3] << 8) | +m[4]) >>> 0;
+}
+
+function prefixToInt(prefix) {
+	return prefix == 0 ? 0 : (0xFFFFFFFF << (32 - prefix)) >>> 0;
+}
+
+function intToIp4(n) {
+	return [ n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255 ].join('.');
+}
+
+// A netmask from /16 to /24 as a number, or null.
+function netmaskToInt(value) {
+	const n = ip4ToInt(value);
+
+	return NETMASKS.some(function(m) { return m[0] === n; }) ? n : null;
+}
+
+// The subnet of an address of another interface, or null.
+function otherSubnet(s) {
+	const parts = String(s.ipaddr).split('/');
+	const addr = ip4ToInt(parts[0]);
+	let mask;
+
+	if (parts.length == 2)
+		mask = /^[0-9]{1,2}$/.test(parts[1]) && +parts[1] <= 32 ? prefixToInt(+parts[1]) : null;
+	else
+		mask = (s.netmask == null) ? 0xFFFFFFFF : ip4ToInt(s.netmask);
+
+	return (addr == null || mask == null) ? null : { addr, mask };
+}
+
+// Check the router address and netmask like the apply script does.
+// Returns true or an error message.
+function checkSubnet(ipaddr, netmask, subnets) {
+	const ip = ip4ToInt(ipaddr);
+	const mask = netmaskToInt(netmask);
+
+	if (ip == null || mask == null)
+		return true;
+
+	const host = (ip & ~mask) >>> 0;
+
+	if (host == 0 || host == (~mask >>> 0))
+		return _('The router address must not be the network or broadcast address');
+
+	for (const s of subnets) {
+		const other = s.interface != 'rickroll' ? otherSubnet(s) : null;
+		const both = other ? (other.mask & mask) >>> 0 : 0;
+
+		if (other && ((other.addr & both) >>> 0) == ((ip & both) >>> 0))
+			return _('This subnet overlaps the subnet of the interface "%s"').format(s.interface);
+	}
+
+	return true;
+}
+
 function portValidator(otherOption) {
 	return function(section_id, value) {
-		if (!/^[1-9][0-9]*$/.test(value) || +value > 65535)
-			return _('Expecting a port number from 1 to 65535');
-
-		if (RESERVED_PORTS.indexOf(+value) >= 0)
-			return _('Ports 53 and 80 are used by the router; choose another port');
+		if (!/^[1-9][0-9]*$/.test(value) || +value < 1024 || +value > 65535)
+			return _('Expecting a port number from 1024 to 65535');
 
 		const other = this.map.lookupOption(otherOption, section_id)?.[0];
 
@@ -84,7 +161,9 @@ return view.extend({
 	load() {
 		return Promise.all([
 			callStatus(),
-			uci.load([ 'rickroll', 'wireless' ])
+			callRadios(),
+			callSubnets(),
+			uci.load('rickroll')
 		]);
 	},
 
@@ -115,6 +194,8 @@ return view.extend({
 
 	render(data) {
 		const status = data[0];
+		const radios = data[1];
+		const subnets = data[2];
 		const view = this;
 		let m, s, o;
 
@@ -140,11 +221,11 @@ return view.extend({
 
 		o = s.taboption('general', form.ListValue, 'radio', _('Radio'),
 			_('The radio that sends the network.'));
-		uci.sections('wireless', 'wifi-device', function(dev) {
+		radios.forEach(function(dev) {
 			const band = BANDS[dev.band] ?? dev.band ?? '?';
 			const channel = (dev.channel == null || dev.channel == 'auto') ? _('auto') : dev.channel;
 
-			o.value(dev['.name'], _('%s (%s, channel %s)').format(dev['.name'], band, channel));
+			o.value(dev.name, _('%s (%s, channel %s)').format(dev.name, band, channel));
 		});
 		o.rmempty = false;
 
@@ -176,11 +257,32 @@ return view.extend({
 		o.datatype = 'ip4addr("nomask")';
 		o.placeholder = '192.168.56.1';
 		o.rmempty = false;
+		o.validate = function(section_id, value) {
+			if (ip4ToInt(value) == null)
+				return _('Expecting an IPv4 address without leading zeros');
 
-		o = s.taboption('network', form.Value, 'netmask', _('Netmask'));
-		o.datatype = 'ip4addr("nomask")';
+			const netmask = this.map.lookupOption('netmask', section_id)?.[0]?.formvalue(section_id);
+
+			return checkSubnet(value, netmask, subnets);
+		};
+
+		// A free value with choices: an existing netmask outside the list stays
+		// visible, so the validation error explains it.
+		o = s.taboption('network', form.Value, 'netmask', _('Netmask'),
+			_('From /16 to /24. Devices get the host numbers 100 to 249 of this subnet.'));
+		NETMASKS.forEach(function(m) {
+			o.value(intToIp4(m[0]), '%s (/%d)'.format(intToIp4(m[0]), m[1]));
+		});
 		o.placeholder = '255.255.255.0';
 		o.rmempty = false;
+		o.validate = function(section_id, value) {
+			if (netmaskToInt(value) == null)
+				return _('Expecting a netmask from 255.255.0.0 (/16) to 255.255.255.0 (/24)');
+
+			const ipaddr = this.map.lookupOption('ipaddr', section_id)?.[0]?.formvalue(section_id);
+
+			return checkSubnet(ipaddr, value, subnets);
+		};
 
 		o = s.taboption('network', form.Value, 'portal_port', _('Portal port'),
 			_('The router sends HTTP requests (port 80) from this network to this port.'));

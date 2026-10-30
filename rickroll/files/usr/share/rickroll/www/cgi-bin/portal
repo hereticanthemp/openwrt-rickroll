@@ -1,12 +1,16 @@
 #!/bin/sh
 # Error page of the portal: send every unknown path to the portal page.
 # Android treats only 200-399 as a captive portal, so never answer 404.
+# The page is at port 80, which the firewall redirects to the portal port.
 
-ipaddr=$(uci -q get rickroll.main.ipaddr) || ipaddr=192.168.56.1
-port=$(uci -q get rickroll.main.portal_port) || port=8080
+SETTINGS=/var/run/rickroll/settings.json
+
+ipaddr=
+[ -r "$SETTINGS" ] && ipaddr=$(jsonfilter -i "$SETTINGS" -e '@.ipaddr')
+[ -n "$ipaddr" ] || ipaddr=192.168.56.1
 
 printf 'Status: 302 Found\r\n'
-printf 'Location: http://%s:%s/\r\n' "$ipaddr" "$port"
+printf 'Location: http://%s/\r\n' "$ipaddr"
 printf 'Cache-Control: no-store\r\n'
 printf 'Content-Type: text/plain\r\n'
 printf '\r\n'

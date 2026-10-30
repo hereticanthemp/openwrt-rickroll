@@ -1,5 +1,6 @@
 #!/bin/sh
-# Create ("up") or remove ("down") the UCI sections that rickroll manages.
+# Create ("up") or remove ("down") the UCI sections that rickroll manages,
+# or only validate the settings ("check").
 #
 # Only the sections named below are touched. A config is committed and its
 # service reloaded only when one of its managed sections really changed.
@@ -8,10 +9,17 @@
 # A private save directory (-t) does not isolate them: uci still reads
 # /tmp/.uci, so the commit would write them and also leave them pending.
 # LuCI keeps its pending changes in rpcd session directories instead.
+#
+# Exit status: 0 done, 1 settings not valid or a commit failed, 2 usage.
+
+# shellcheck source=/dev/null
+. /lib/functions.sh
 
 NETWORK_SECTIONS="rickroll_dev rickroll"
 WIRELESS_SECTIONS="rickroll"
 DHCP_SECTIONS="rickroll"
+# rickroll_dns and rickroll_http are input rules of version 0.1.0. They are
+# no longer created, but "up" and "down" still remove them.
 FIREWALL_SECTIONS="rickroll rickroll_dhcp rickroll_dns rickroll_http rickroll_dnat_dns rickroll_dnat_http"
 
 log_err() {
@@ -44,9 +52,18 @@ delete_sections() {
 	done
 }
 
+# Drop the staged changes of the managed sections of config $1.
+revert_sections() {
+	for s in $(sections_of "$1"); do
+		u revert "$1.$s"
+	done
+}
+
+# Octets are decimal without leading zeros, so shell arithmetic reads them as
+# decimal and not as octal.
 valid_ipv4() {
 	case "$1" in
-	*[!0-9.]* | .* | *. | *..*) return 1 ;;
+	*[!0-9.]* | .* | *. | *..* | 0[0-9]* | *.0[0-9]*) return 1 ;;
 	esac
 	# shellcheck disable=SC2046 # split the address into octets on purpose
 	set -- $(echo "$1" | tr . ' ')
@@ -56,12 +73,17 @@ valid_ipv4() {
 	done
 }
 
+# Print a valid IPv4 address as a 32-bit number.
+ip2int() {
+	# shellcheck disable=SC2046 # split the address into octets on purpose
+	set -- $(echo "$1" | tr . ' ')
+	echo $((($1 << 24) | ($2 << 16) | ($3 << 8) | $4))
+}
+
 # A netmask is a valid address whose bits are all ones, then all zeros.
 valid_netmask() {
 	valid_ipv4 "$1" || return 1
-	# shellcheck disable=SC2046 # split the address into octets on purpose
-	set -- $(echo "$1" | tr . ' ')
-	m=$((($1 << 24) | ($2 << 16) | ($3 << 8) | $4))
+	m=$(ip2int "$1")
 	inv=$((~m & 0xFFFFFFFF))
 	[ "$m" -ne 0 ] && [ $((inv & (inv + 1))) -eq 0 ]
 }
@@ -73,18 +95,71 @@ valid_port() {
 	[ "${#1}" -le 5 ] && [ "$1" -le 65535 ]
 }
 
-# Ports 53 and 80 are the ones redirected to these ports, so they cannot be used.
+# Ports below 1024 belong to system services. This also excludes 53 and 80,
+# the ports that are redirected to these ports.
 check_port() {
-	if ! valid_port "$2"; then
-		log_err "$1 '$2' is not 1-65535"
+	if ! valid_port "$2" || [ "$2" -lt 1024 ]; then
+		log_err "$1 '$2' is not 1024-65535"
 		return 1
 	fi
-	case "$2" in
-	53 | 80)
-		log_err "$1 must not be 53 or 80, they are redirected"
+}
+
+# Callback of config_foreach: set "overlap" when an IPv4 subnet of the static
+# interface $1 overlaps $my_ip/$my_mask.
+# shellcheck disable=SC2154 # config_get sets proto, addrs and mask
+check_iface_overlap() {
+	[ "$1" = rickroll ] && return 0
+	config_get proto "$1" proto
+	[ "$proto" = static ] || return 0
+	config_get addrs "$1" ipaddr
+	config_get mask "$1" netmask
+	for a in $addrs; do
+		case "$a" in
+		*/*)
+			p=${a#*/}
+			a=${a%/*}
+			case "$p" in '' | *[!0-9]*) continue ;; esac
+			[ "$p" -le 32 ] || continue
+			m=$(((0xFFFFFFFF << (32 - p)) & 0xFFFFFFFF))
+			;;
+		*)
+			if [ -z "$mask" ]; then
+				m=0xFFFFFFFF
+			elif valid_netmask "$mask"; then
+				m=$(ip2int "$mask")
+			else
+				continue
+			fi
+			;;
+		esac
+		valid_ipv4 "$a" || continue
+		both=$((m & my_mask))
+		if [ $(($(ip2int "$a") & both)) -eq $((my_ip & both)) ]; then
+			log_err "subnet $ipaddr/$netmask overlaps interface '$1' ($a)"
+			overlap=1
+		fi
+	done
+}
+
+# The DHCP range is host 100 to 249, so the netmask must be /16 to /24.
+check_subnet() {
+	valid_ipv4 "$ipaddr" || { log_err "ipaddr '$ipaddr' is not an IPv4 address"; return 1; }
+	valid_netmask "$netmask" || { log_err "netmask '$netmask' is not an IPv4 netmask"; return 1; }
+	my_ip=$(ip2int "$ipaddr")
+	my_mask=$(ip2int "$netmask")
+	if [ "$my_mask" -lt $((0xFFFF0000)) ] || [ $((my_mask & 0xFF)) -ne 0 ]; then
+		log_err "netmask '$netmask' is not /16 to /24"
 		return 1
-		;;
-	esac
+	fi
+	host=$((my_ip & ~my_mask & 0xFFFFFFFF))
+	if [ "$host" -eq 0 ] || [ "$host" -eq $((~my_mask & 0xFFFFFFFF)) ]; then
+		log_err "ipaddr '$ipaddr' is the network or broadcast address of netmask '$netmask'"
+		return 1
+	fi
+	overlap=0
+	config_load network
+	config_foreach check_iface_overlap interface
+	return $overlap
 }
 
 load_settings() {
@@ -119,8 +194,7 @@ validate_settings() {
 	0 | 1) ;;
 	*) log_err "isolate '$isolate' is not 0 or 1"; ok=1 ;;
 	esac
-	valid_ipv4 "$ipaddr" || { log_err "ipaddr '$ipaddr' is not an IPv4 address"; ok=1; }
-	valid_netmask "$netmask" || { log_err "netmask '$netmask' is not an IPv4 netmask"; ok=1; }
+	check_subnet || ok=1
 	check_port portal_port "$portal_port" || ok=1
 	check_port dns_port "$dns_port" || ok=1
 	[ "$portal_port" != "$dns_port" ] ||
@@ -181,6 +255,8 @@ fw_dnat() {
 	u set "firewall.$1.reflection=0"
 }
 
+# The zone input policy rejects direct connections to the portal and DNS
+# ports. fw4 accepts the redirected connections ("ct status dnat accept").
 build_firewall() {
 	u set firewall.rickroll=zone
 	u set firewall.rickroll.name=rickroll
@@ -189,21 +265,27 @@ build_firewall() {
 	u set firewall.rickroll.output=ACCEPT
 	u set firewall.rickroll.forward=REJECT
 	fw_rule rickroll_dhcp rickroll-dhcp udp 67
-	fw_rule rickroll_dns rickroll-dns 'tcp udp' "$dns_port"
-	fw_rule rickroll_http rickroll-http tcp "$portal_port"
 	fw_dnat rickroll_dnat_dns rickroll-dnat-dns 'tcp udp' 53 "$dns_port"
 	fw_dnat rickroll_dnat_http rickroll-dnat-http tcp 80 "$portal_port"
 }
 
 # Stage the new state of config $1 and commit it if it differs.
-# Returns 0 when the config changed.
+# Returns 0 when the config changed. A failed commit sets "failed".
+# The managed sections have no staged changes before and after this.
 update_config() {
 	before=$(snapshot "$1")
 	delete_sections "$1"
 	[ "$2" = up ] && "build_$1"
 	after=$(snapshot "$1")
-	[ "$before" = "$after" ] && return 1
-	u commit "$1"
+	if [ "$before" = "$after" ]; then
+		revert_sections "$1"
+		return 1
+	fi
+	u commit "$1" && return 0
+	log_err "could not commit config '$1'"
+	revert_sections "$1"
+	failed=1
+	return 1
 }
 
 # Reload each radio once; empty arguments are skipped.
@@ -214,23 +296,39 @@ reload_wifi() {
 }
 
 run() {
-	old_radio=$(u get wireless.rickroll.device)
-	if [ "$1" = up ]; then
+	if [ "$1" != down ]; then
 		load_settings
 		validate_settings || exit 1
+		[ "$1" = check ] && exit 0
 	fi
 
-	update_config network "$1" && /etc/init.d/network reload
-	update_config wireless "$1" && reload_wifi "$old_radio" "$radio"
-	update_config dhcp "$1" && /etc/init.d/dnsmasq reload
-	update_config firewall "$1" && /etc/init.d/firewall reload
-	return 0
+	# Changes left by an earlier failed run would make "before" equal "after".
+	for c in network firewall dhcp wireless; do
+		revert_sections "$c"
+	done
+	old_radio=$(u get wireless.rickroll.device)
+
+	failed=0
+	# "up" creates the network before the services that use it;
+	# "down" removes it after them.
+	if [ "$1" = up ]; then
+		update_config network up && /etc/init.d/network reload
+		update_config firewall up && /etc/init.d/firewall reload
+		update_config dhcp up && /etc/init.d/dnsmasq reload
+		update_config wireless up && reload_wifi "$old_radio" "$radio"
+	else
+		update_config wireless down && reload_wifi "$old_radio"
+		update_config dhcp down && /etc/init.d/dnsmasq reload
+		update_config firewall down && /etc/init.d/firewall reload
+		update_config network down && /etc/init.d/network reload
+	fi
+	return $failed
 }
 
 case "$1" in
-up | down) ;;
+up | down | check) ;;
 *)
-	echo "usage: $0 up|down" >&2
+	echo "usage: $0 up|down|check" >&2
 	exit 2
 	;;
 esac

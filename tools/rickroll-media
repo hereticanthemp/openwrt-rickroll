@@ -242,7 +242,7 @@ seg_audio=$(probe_stream a "${segments[0]}" | grep -m 1 '^codec_name=' || true)
 
 if [[ -n $target ]]; then
 	remote() {
-		ssh "${ssh_opts[@]}" -- "$target" "$1"
+		ssh ${ssh_opts[@]+"${ssh_opts[@]}"} -- "$target" "$1"
 	}
 	remote_cleanup() {
 		remote "rm -rf $REMOTE_DIR/media.new" || info "could not remove $REMOTE_DIR/media.new on the router"
@@ -250,12 +250,13 @@ if [[ -n $target ]]; then
 
 	info "checking $target"
 	rc=0
-	df_line=$(remote "[ -d $REMOTE_DIR ] || exit 3
+	df_line=$(remote "[ -x /usr/libexec/rickroll/apply ] || exit 3
+mkdir -p $REMOTE_DIR || exit 4
 rm -rf $REMOTE_DIR/media.new && mkdir $REMOTE_DIR/media.new || exit 4
 df -Pk $REMOTE_DIR | tail -n 1") || rc=$?
 	case $rc in
 	0) ;;
-	3) die "$REMOTE_DIR not found on $target; install the rickroll package first" ;;
+	3) die "the rickroll package is not installed on $target; install it first" ;;
 	4) die "could not create $REMOTE_DIR/media.new on $target" ;;
 	*) die "ssh to $target failed (exit $rc)" ;;
 	esac
@@ -273,13 +274,15 @@ df -Pk $REMOTE_DIR | tail -n 1") || rc=$?
 
 	info "uploading $nseg segments"
 	# -O: OpenWrt dropbear has no sftp-server.
-	if ! scp -O -q "${scp_opts[@]}" -- "$tmp/index.m3u8" "${segments[@]}" \
+	if ! scp -O -q ${scp_opts[@]+"${scp_opts[@]}"} -- "$tmp/index.m3u8" "${segments[@]}" \
 		"$target:$REMOTE_DIR/media.new/"; then
 		remote_cleanup
 		die "upload failed"
 	fi
 
+	# The portal runs as "nobody", so the files must be readable by all.
 	remote "cd $REMOTE_DIR || exit 1
+chmod 0755 media.new && chmod 0644 media.new/* || exit 1
 rm -rf media.old
 if [ -e media ]; then mv media media.old || exit 1; fi
 if ! mv media.new media; then

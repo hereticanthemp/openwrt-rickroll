@@ -1,14 +1,16 @@
 #!/bin/sh
-# Page settings as JSON: lang, title, button, has_media.
+# Page settings as JSON: lang, title, button, ipaddr and has_media.
+# /etc/init.d/rickroll writes all of them except has_media.
+
+SETTINGS=/var/run/rickroll/settings.json
+PLAYLIST=/etc/rickroll/media/index.m3u8
 
 # shellcheck source=/dev/null
 . /usr/share/libubox/jshn.sh
 
 json_init
-json_add_string lang "$(uci -q get rickroll.main.lang || echo auto)"
-json_add_string title "$(uci -q get rickroll.main.title)"
-json_add_string button "$(uci -q get rickroll.main.button)"
-if [ -s /etc/rickroll/media/index.m3u8 ]; then
+[ -r "$SETTINGS" ] && json_load_file "$SETTINGS"
+if [ -s "$PLAYLIST" ] && [ ! -L "$PLAYLIST" ] && [ -r "$PLAYLIST" ]; then
 	json_add_boolean has_media 1
 else
 	json_add_boolean has_media 0

@@ -11,6 +11,17 @@ PKG_PO_VERSION:=$(PKG_VERSION)-r$(PKG_RELEASE)
 PKG_LICENSE:=MIT
 PKG_MAINTAINER:=Gin Pan <hereticanthemp@gmail.com>
 
+# Remove the rpcd plugin and ACL from the running rpcd, and the menu from the
+# LuCI cache. luci.mk calls BuildPackage, so this must come before it.
+define Package/luci-app-rickroll/postrm
+#!/bin/sh
+[ -n "$${IPKG_INSTROOT}" ] || {
+	rm -f /tmp/luci-indexcache.*
+	rm -rf /tmp/luci-modulecache/
+	/etc/init.d/rpcd reload 2>/dev/null
+}
+endef
+
 include $(TOPDIR)/feeds/luci/luci.mk
 
 # call BuildPackage - OpenWrt buildroot signature
