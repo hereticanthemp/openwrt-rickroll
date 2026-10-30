@@ -15,7 +15,8 @@ case "$PATH_INFO" in
 esac
 
 file="$MEDIA${PATH_INFO}"
-[ -f "$file" ] || not_found
+# Serve regular files only; a symlink could point outside the media directory.
+[ -f "$file" ] && [ ! -L "$file" ] || not_found
 
 printf 'Content-Type: video/mp2t\r\n'
 printf 'Content-Length: %s\r\n' "$(wc -c <"$file")"
